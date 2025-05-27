@@ -5,10 +5,11 @@ import type { CreditCard, CardType } from "../types/types"
 import CreditCardDisplay from "./CreditCardDisplay"
 
 interface CreditCardFormProps {
-  onSubmit: (data: CreditCard) => void
+  onSubmit: (data: CreditCard) => void,
+  loaderTC: boolean
 }
 
-const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
+const CreditCardForm = ({ onSubmit, loaderTC }: CreditCardFormProps) => {
   const [cardData, setCardData] = useState<CreditCard>({
     number: "",
     name: "",
@@ -19,13 +20,13 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
   const [cardType, setCardType] = useState<CardType>("unknown")
   const [isFlipped, setIsFlipped] = useState(false)
 
-  
+
   useEffect(() => {
     const number = cardData.number.replace(/\s/g, "")
 
     if (number.startsWith("4")) {
       setCardType("visa")
-    } else if (/^5[1-5]/.test(number)) {
+    } else if (number.startsWith("5")) {
       setCardType("mastercard")
     } else {
       setCardType("unknown")
@@ -33,13 +34,13 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
   }, [cardData.number])
 
   const formatCardNumber = (value: string) => {
-    
+
     let v = value.replace(/\D/g, "")
 
-    
+
     v = v.substring(0, 16)
 
-    
+
     const parts = []
     for (let i = 0; i < v.length; i += 4) {
       parts.push(v.substring(i, i + 4))
@@ -49,7 +50,7 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
   }
 
   const formatExpiry = (value: string) => {
-    
+
     const v = value.replace(/\D/g, "")
 
     if (v.length >= 3) {
@@ -62,12 +63,12 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
 
-    
+
     if (name === "number") {
-      
+
       const numericValue = value.replace(/\D/g, "")
       const isVisa = numericValue.startsWith("4")
-      const isMastercard = /^5[1-5]/.test(numericValue)
+      const isMastercard = numericValue.startsWith("5")
 
       if (numericValue.length > 0 && !isVisa && !isMastercard) {
         setErrors({
@@ -87,7 +88,7 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
         [name]: formatExpiry(value),
       })
     } else if (name === "cvc") {
-      
+
       const numericValue = value.replace(/\D/g, "").substring(0, 3)
       setCardData({
         ...cardData,
@@ -100,7 +101,7 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
       })
     }
 
-    
+
     if (errors[name as keyof CreditCard]) {
       setErrors({
         ...errors,
@@ -124,7 +125,7 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
   const validateForm = () => {
     const newErrors: Partial<Record<keyof CreditCard, string>> = {}
 
-    
+
     const cardNumber = cardData.number.replace(/\s/g, "")
     if (cardNumber.length !== 16) {
       newErrors.number = "El número de tarjeta debe tener 16 dígitos"
@@ -132,12 +133,12 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
       newErrors.number = "Solo se aceptan tarjetas Visa o Mastercard"
     }
 
-    
+
     if (!cardData.name.trim()) {
       newErrors.name = "El nombre es obligatorio"
     }
 
-    
+
     if (!/^\d{2}\/\d{2}$/.test(cardData.expiry)) {
       newErrors.expiry = "Formato inválido (MM/YY)"
     } else {
@@ -152,7 +153,7 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
       }
     }
 
-    
+
     if (!/^\d{3}$/.test(cardData.cvc)) {
       newErrors.cvc = "El CVC debe tener 3 dígitos"
     }
@@ -165,6 +166,7 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
     e.preventDefault()
 
     if (validateForm()) {
+      
       onSubmit(cardData)
     }
   }
@@ -300,7 +302,7 @@ const CreditCardForm = ({ onSubmit }: CreditCardFormProps) => {
         </div>
 
         <div className="pt-4">
-          <button type="submit" className="btn-primary w-full">
+          <button type="submit" disabled={loaderTC} className="btn-primary w-full">
             Continuar
           </button>
         </div>

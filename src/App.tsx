@@ -1,9 +1,20 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Routes, Route, useNavigate } from "react-router-dom"
 import ProductPage from "./pages/ProductPage"
 import type { Product } from "./types/types"
 import ProductCatalogPage from "./pages/ProductCatalogPage"
 import PaymentResultPage from "./pages/PaymentResultPage"
+import { useDispatch } from "react-redux"
+import { setPaymentData } from "./slices/payment"
+
+declare global {
+  interface Window {
+    $wompi?: {
+      initialize: (callback: (data: any, error: any) => void) => void
+      [key: string]: any
+    }
+  }
+}
 
 const initialProducts: Product[] = [
   {
@@ -45,13 +56,37 @@ const initialProducts: Product[] = [
 ]
 
 function App() {
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+
+    if (window.$wompi && typeof window.$wompi.initialize === "function") {
+      window.$wompi.initialize(function (data: any, error: any) {
+        if (error === null) {
+          const sessionId = data.sessionId
+          const deviceId = data.deviceData.deviceID
+
+          dispatch(setPaymentData({
+            deviceId: deviceId,
+            sesionId: sessionId,
+          }))
+        } else {
+          console.error("Error inicializando Wompi:", error)
+        }
+      })
+    }
+  }, [])
+
+
+
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [transactionId, setTransactionId] = useState<string | null>(null)
   const [transactionStatus, setTransactionStatus] = useState<"success" | "failed" | null>(null)
   const navigate = useNavigate()
 
-  
+
   const updateStock = (productId: number, quantity: number) => {
     setProducts((prev) =>
       prev.map((product) =>
@@ -60,20 +95,17 @@ function App() {
     )
   }
 
-  
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product)
     navigate(`/product/${product.id}`)
   }
 
-  
   const handleTransactionComplete = (id: string, status: "success" | "failed") => {
     setTransactionId(id)
     setTransactionStatus(status)
     navigate(`/result/${status}`)
   }
 
-  
   const resetTransaction = () => {
     setTransactionId(null)
     setTransactionStatus(null)

@@ -30,4 +30,9 @@ export interface PaymentSummary {
   total: number
 }
 
+export interface PaymentData {
+  deviceId: string,
+  sesionId: string,
+}
+
 export type CardType = "visa" | "mastercard" | "unknown"

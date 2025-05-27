@@ -12,7 +12,13 @@ interface PaymentModalProps {
 }
 
 const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName }: PaymentModalProps) => {
+
+
+  const [loaderTC, setLoaderTC] = useState(false)
+
   const [step, setStep] = useState<"card" | "delivery" | "summary">("card")
+
+
   const [cardData, setCardData] = useState<CreditCard>({
     number: "",
     name: "",
@@ -29,13 +35,49 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName 
   const [isProcessing, setIsProcessing] = useState(false)
   const [animation, setAnimation] = useState("")
 
-  const handleCardSubmit = (data: CreditCard) => {
+  const handleCardSubmit = async (data: CreditCard) => {
+
+    setLoaderTC(true)
     setCardData(data)
     setAnimation("slideOut")
-    setTimeout(() => {
-      setStep("delivery")
-      setAnimation("slideIn")
-    }, 300)
+
+
+
+    // TOKENISAR LA TARJETA
+
+    const request = await fetch('https://api-sandbox.co.uat.wompi.dev/v1/tokens/cards', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application',
+        'Authorization': `Bearer pub_stagtest_g2u0HQd3ZMh05hsSgTS2lUV8t3s4mOt7`
+      },
+      body: JSON.stringify({
+        "number": data.number.replace(/ /g, ''),
+        "exp_month": data.expiry.split("/")[0].trim(),
+        "exp_year": data.expiry.split("/")[1].trim(),
+        "cvc": data.cvc,
+        "card_holder": data.name,
+      })
+    })
+
+    const response = await request.json()
+
+    if (!request.ok) {
+      console.error("Error al tokenizar la tarjeta:", response)
+      setLoaderTC(false)
+      return
+    }
+
+    if (response.data) {
+      setAnimation("slideOut")
+      setTimeout(() => {
+        setStep("delivery")
+        setAnimation("slideIn")
+      }, 300)
+      setLoaderTC(false)
+    }
+
+
   }
 
   const handleDeliverySubmit = (data: DeliveryInfo) => {
@@ -50,11 +92,11 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName 
   const handlePayment = async () => {
     setIsProcessing(true)
 
-    
+
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      
+
       const isSuccessful = Math.random() < 0.9
 
       if (isSuccessful) {
@@ -82,7 +124,7 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName 
     }, 300)
   }
 
-  
+
   const getAnimationClasses = () => {
     let classes = "transition-all duration-300"
     if (animation === "slideIn") {
@@ -138,7 +180,7 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName 
           </div>
 
           <div className={getAnimationClasses()}>
-            {step === "card" && <CreditCardForm onSubmit={handleCardSubmit} />}
+            {step === "card" && <CreditCardForm onSubmit={handleCardSubmit} loaderTC={loaderTC} />}
 
             {step === "delivery" && <DeliveryForm onSubmit={handleDeliverySubmit} onBack={goBack} />}
 
