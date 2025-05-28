@@ -1,10 +1,10 @@
 export interface Product {
-  id: number
+  _id: number
   name: string
   description: string
   price: number
   stock: number
-  image: string
+  imageUrl: string
 }
 
 export interface CreditCard {
@@ -20,19 +20,33 @@ export interface DeliveryInfo {
   city: string
   zipCode: string
   phone: string
+  email: string
 }
 
 export interface PaymentSummary {
   productQuantity: number
   productPrice: number
-  baseFee: number
-  shippingFee: number
   total: number
 }
 
 export interface PaymentData {
-  deviceId: string,
-  sesionId: string,
+  deviceId?: string,
+  sesionId?: string,
+  tokenId?: string,
 }
 
 export type CardType = "visa" | "mastercard" | "unknown"
+
+
+export interface StatusTransaction {
+  status: OrderStatus| ''
+  orderId: ''
+}
+
+
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  FAILED = 'FAILED',
+  COMPLETED = 'COMPLETED',
+}

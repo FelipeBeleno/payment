@@ -16,6 +16,7 @@ const DeliveryForm = ({ onSubmit, onBack }: DeliveryFormProps) => {
     city: "",
     zipCode: "",
     phone: "",
+    email: "", 
   })
   const [selectedCountry, setSelectedCountry] = useState(countries[0]) 
   const [errors, setErrors] = useState<Partial<Record<keyof DeliveryInfo, string>>>({})
@@ -23,16 +24,13 @@ const DeliveryForm = ({ onSubmit, onBack }: DeliveryFormProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
 
-    
     if (name === "phone") {
-      
       const formattedValue = value.replace(/\D/g, "")
       setDeliveryData({
         ...deliveryData,
         [name]: formattedValue,
       })
     } else if (name === "zipCode") {
-      
       const formattedValue = value.replace(/\D/g, "")
       setDeliveryData({
         ...deliveryData,
@@ -45,7 +43,6 @@ const DeliveryForm = ({ onSubmit, onBack }: DeliveryFormProps) => {
       })
     }
 
-    
     if (errors[name as keyof DeliveryInfo]) {
       setErrors({
         ...errors,
@@ -57,37 +54,41 @@ const DeliveryForm = ({ onSubmit, onBack }: DeliveryFormProps) => {
   const validateForm = () => {
     const newErrors: Partial<Record<keyof DeliveryInfo, string>> = {}
 
-    
     if (!deliveryData.fullName.trim()) {
       newErrors.fullName = "El nombre completo es obligatorio"
     } else if (deliveryData.fullName.trim().length < 3) {
       newErrors.fullName = "El nombre debe tener al menos 3 caracteres"
     }
 
-    
     if (!deliveryData.address.trim()) {
       newErrors.address = "La dirección es obligatoria"
     } else if (deliveryData.address.trim().length < 5) {
       newErrors.address = "La dirección debe ser más detallada"
     }
 
-    
     if (!deliveryData.city.trim()) {
       newErrors.city = "La ciudad es obligatoria"
     }
 
-    
     if (!deliveryData.zipCode.trim()) {
       newErrors.zipCode = "El código postal es obligatorio"
     } else if (!/^\d{5}$/.test(deliveryData.zipCode)) {
       newErrors.zipCode = "El código postal debe tener 5 dígitos"
     }
 
-    
     if (!deliveryData.phone.trim()) {
       newErrors.phone = "El teléfono es obligatorio"
     } else if (!/^\d{10}$/.test(deliveryData.phone)) {
       newErrors.phone = "El teléfono debe tener 10 dígitos"
+    }
+
+    
+    if (!deliveryData.email.trim()) {
+      newErrors.email = "El correo electrónico es obligatorio"
+    } else if (
+      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(deliveryData.email)
+    ) {
+      newErrors.email = "El correo electrónico no es válido"
     }
 
     setErrors(newErrors)
@@ -98,7 +99,6 @@ const DeliveryForm = ({ onSubmit, onBack }: DeliveryFormProps) => {
     e.preventDefault()
 
     if (validateForm()) {
-      
       const fullPhoneNumber = `${selectedCountry.dialCode} ${deliveryData.phone}`
       onSubmit({
         ...deliveryData,
@@ -197,6 +197,23 @@ const DeliveryForm = ({ onSubmit, onBack }: DeliveryFormProps) => {
             />
           </div>
           {errors.phone && <p className="error-text">{errors.phone}</p>}
+        </div>
+
+        
+        <div>
+          <label htmlFor="email" className="form-label">
+            Correo electrónico
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={deliveryData.email}
+            onChange={handleChange}
+            placeholder="tucorreo@ejemplo.com"
+            className={`form-input ${errors.email ? "border-red-500" : ""}`}
+          />
+          {errors.email && <p className="error-text">{errors.email}</p>}
         </div>
 
         <div className="pt-4 flex space-x-4">

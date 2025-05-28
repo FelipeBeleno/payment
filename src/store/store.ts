@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit'
 import paymentDataSlice from '../slices/payment';
+import statusTransactionSlice from '../slices/statusTransaction';
 
 export const store = configureStore({
     reducer: {
-        paymentData: paymentDataSlice
+        paymentData: paymentDataSlice,
+        statusTransaction: statusTransactionSlice
     },
 })
 

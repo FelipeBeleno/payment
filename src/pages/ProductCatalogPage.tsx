@@ -1,36 +1,30 @@
+import { useCallback, useEffect, useState } from "react"
 import type { Product } from "../types/types"
+import api from "../utils/axiosConfig"
 
 interface ProductCatalogProps {
-  products: Product[]
+
   onProductSelect: (product: Product) => void
 }
 
-const ProductCatalogPage = ({ products, onProductSelect }: ProductCatalogProps) => {
+const ProductCatalogPage = ({ onProductSelect }: ProductCatalogProps) => {
+
+
+  const [products, setProducts] = useState<Product[]>([])
+  const getData = useCallback(
+    async () => {
+      const resquest = await api.get("http://localhost:3000/product")
+      setProducts(resquest.data)
+    }, [])
+
+  useEffect(() => {
+    getData()
+  }, [])
+
   return (
     <div className="store-container py-8 animate-[fadeIn_0.5s_ease-out]">
       <header className="flex justify-between items-center mb-8">
-        <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Store</h1>
-        </div>
-        <nav>
-          <ul className="flex space-x-6">
-            <li>
-              <a href="#" className="text-gray-600 hover:text-gray-900">
-                Inicio
-              </a>
-            </li>
-            <li>
-              <a href="#" className="text-gray-600 hover:text-gray-900">
-                Productos
-              </a>
-            </li>
-            <li>
-              <a href="#" className="text-gray-600 hover:text-gray-900">
-                Contacto
-              </a>
-            </li>
-          </ul>
-        </nav>
+     
       </header>
 
       <main className="animate-[slideIn_0.5s_ease-out]">
@@ -42,19 +36,17 @@ const ProductCatalogPage = ({ products, onProductSelect }: ProductCatalogProps) 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
             <div
-              key={product.id}
+              key={product._id}
               className="card p-6 hover:shadow-xl transition-all duration-300 ease-in-out cursor-pointer transform hover:scale-[1.02] hover:-translate-y-1 flex flex-col h-full"
               onClick={() => onProductSelect(product)}
             >
               <div className="aspect-square mb-4 overflow-hidden rounded-lg bg-gray-100 flex-shrink-0">
                 <img
-                  src={product.image || "/placeholder.svg"}
+                  src={product.imageUrl || "https://placehold.co/300x300?text=Product+Image"}
                   alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-300 ease-in-out hover:scale-105"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = "https://via.placeholder.com/300x300?text=Producto"
-                  }}
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
 
@@ -64,7 +56,7 @@ const ProductCatalogPage = ({ products, onProductSelect }: ProductCatalogProps) 
 
                 <div className="mt-auto">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-2xl font-bold text-gray-800">${product.price.toFixed(2)}</span>
+                    <span className="text-2xl font-bold text-gray-800">${product.price}</span>
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${product.stock > 0 ? "bg-[#e6f7d9] text-[#4CAF50]" : "bg-red-100 text-red-600"
                         }`}
@@ -75,8 +67,8 @@ const ProductCatalogPage = ({ products, onProductSelect }: ProductCatalogProps) 
 
                   <button
                     className={`w-full py-2 px-4 rounded-md font-medium transition-all duration-200 ease-in-out ${product.stock > 0
-                        ? "bg-[#00D284] text-white hover:bg-[#00b673] hover:shadow-md transform hover:scale-[1.02]"
-                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      ? "bg-[#00D284] text-white hover:bg-[#00b673] hover:shadow-md transform hover:scale-[1.02]"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
                       }`}
                     disabled={product.stock === 0}
                   >

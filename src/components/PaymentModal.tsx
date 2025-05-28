@@ -1,18 +1,27 @@
 import { useState } from "react"
-import type { CreditCard, DeliveryInfo, PaymentSummary } from "../types/types"
+import type { CreditCard, DeliveryInfo, PaymentSummary, Product } from "../types/types"
 import CreditCardForm from "./CreditCardForm"
 import DeliveryForm from "./DeliveryForm"
 import PaymentSummaryComponent from "./PaymentSummary"
+import { useDispatch, useSelector } from "react-redux"
+import { setTokenId } from "../slices/payment"
+import { setStatusTransaction } from "../slices/statusTransaction"
+import api from "../utils/axiosConfig"
 
 interface PaymentModalProps {
   onClose: () => void
   paymentSummary: PaymentSummary
   onPaymentComplete: (success: boolean) => void
-  productName: string
+
+  product: Product
 }
 
-const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName }: PaymentModalProps) => {
+const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, product }: PaymentModalProps) => {
 
+
+  const paymentData = useSelector((state: any) => state.paymentData)
+
+  const dispatch = useDispatch();
 
   const [loaderTC, setLoaderTC] = useState(false)
 
@@ -31,11 +40,15 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName 
     city: "",
     zipCode: "",
     phone: "",
+    email: "",
   })
   const [isProcessing, setIsProcessing] = useState(false)
   const [animation, setAnimation] = useState("")
 
+
   const handleCardSubmit = async (data: CreditCard) => {
+
+
 
     setLoaderTC(true)
     setCardData(data)
@@ -43,26 +56,24 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName 
 
 
 
-    // TOKENISAR LA TARJETA
+    const response = await api.post(import.meta.env.VITE_URL_WP, {
 
-    const request = await fetch('https://api-sandbox.co.uat.wompi.dev/v1/tokens/cards', {
-      method: 'POST',
+      "number": data.number.replace(/ /g, ''),
+      "exp_month": data.expiry.split("/")[0].trim(),
+      "exp_year": data.expiry.split("/")[1].trim(),
+      "cvc": data.cvc,
+      "card_holder": data.name,
+
+    }, {
       headers: {
         'Content-Type': 'application',
-        'Authorization': `Bearer pub_stagtest_g2u0HQd3ZMh05hsSgTS2lUV8t3s4mOt7`
+        'Authorization': `Bearer ${import.meta.env.VITE_PUBLIC_KEY_ACCESS}`
       },
-      body: JSON.stringify({
-        "number": data.number.replace(/ /g, ''),
-        "exp_month": data.expiry.split("/")[0].trim(),
-        "exp_year": data.expiry.split("/")[1].trim(),
-        "cvc": data.cvc,
-        "card_holder": data.name,
-      })
     })
+    debugger;
+    dispatch(setTokenId(response.data.data.id))
 
-    const response = await request.json()
-
-    if (!request.ok) {
+    if (!response.status) {
       console.error("Error al tokenizar la tarjeta:", response)
       setLoaderTC(false)
       return
@@ -90,16 +101,51 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName 
   }
 
   const handlePayment = async () => {
+
     setIsProcessing(true)
 
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
 
 
-      const isSuccessful = Math.random() < 0.9
+      const body = {
+        deliveryInfo: deliveryData,
+        paymentData: paymentData,
+        products: [
+          {
 
-      if (isSuccessful) {
+            productId: product._id,
+            quantity: paymentSummary.productQuantity,
+            priceU: product.price,
+            priceT: paymentSummary.total,
+            name: product.name,
+          }
+        ],
+        feeOrder: paymentSummary.total,
+        feeDelivery: 8500,
+        feeBought: paymentSummary.total - 8500,
+      }
+
+
+
+
+      const request = await api.post('/order',
+        body
+        , {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+
+      )
+
+
+      if (request.status) {
+        dispatch(setStatusTransaction({
+          status: request.data.status,
+          orderId: request.data._id
+        }))
+
         onPaymentComplete(true)
       } else {
         onPaymentComplete(false)
@@ -189,7 +235,7 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, productName 
                 paymentSummary={paymentSummary}
                 cardData={cardData}
                 deliveryData={deliveryData}
-                productName={productName}
+                productName={product.name}
                 onPayment={handlePayment}
                 onBack={goBack}
                 isProcessing={isProcessing}

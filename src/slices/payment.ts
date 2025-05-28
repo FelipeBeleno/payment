@@ -5,6 +5,7 @@ import { PaymentData } from '../types/types'
 const initialState: PaymentData = {
     deviceId: '',
     sesionId: '',
+    tokenId: '',
 }
 
 const paymentDataSlice = createSlice({
@@ -15,9 +16,12 @@ const paymentDataSlice = createSlice({
             state.deviceId = action.payload.deviceId
             state.sesionId = action.payload.sesionId
         },
+        setTokenId(state, action: PayloadAction<string>) {
+            state.tokenId = action.payload
+        }
 
     },
 })
 
-export const { setPaymentData } = paymentDataSlice.actions
+export const { setPaymentData, setTokenId } = paymentDataSlice.actions
 export default paymentDataSlice.reducer

@@ -19,9 +19,9 @@ const PaymentSummaryComponent = ({
   onBack,
   isProcessing,
 }: PaymentSummaryProps) => {
-  const { productQuantity, productPrice, baseFee, shippingFee, total } = paymentSummary
+  const { productQuantity, productPrice, total } = paymentSummary
 
-  
+
   const maskedCardNumber = `**** **** **** ${cardData.number.slice(-4)}`
 
   return (
@@ -35,23 +35,21 @@ const PaymentSummaryComponent = ({
               <span className="text-gray-600">
                 {productName} x {productQuantity}
               </span>
-              <span className="font-medium">${productPrice.toFixed(2)}</span>
+              <span className="font-medium">${productPrice}</span>
             </div>
 
-            <div className="flex justify-between">
-              <span className="text-gray-600">Tarifa base</span>
-              <span className="font-medium">${baseFee.toFixed(2)}</span>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Envio</span>
+                <span className="font-medium">$8500</span>
+              </div>
             </div>
 
-            <div className="flex justify-between">
-              <span className="text-gray-600">Envío</span>
-              <span className="font-medium">${shippingFee.toFixed(2)}</span>
-            </div>
 
             <div className="border-t pt-3 mt-3">
               <div className="flex justify-between font-bold">
                 <span>Total</span>
-                <span className="text-[#00D284]">${total.toFixed(2)}</span>
+                <span className="text-[#00D284]">${total}</span>
               </div>
             </div>
           </div>
@@ -84,6 +82,7 @@ const PaymentSummaryComponent = ({
               {deliveryData.city}, {deliveryData.zipCode}
             </p>
             <p>Tel: {deliveryData.phone}</p>
+            <p>Correo: {deliveryData.email}</p>
           </div>
         </div>
 
