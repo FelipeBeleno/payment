@@ -1,15 +1,46 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useCallback, useEffect, useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
 import type { Product } from "../types/types"
 import PaymentModal from "../components/PaymentModal"
 import CustomSelect from "../components/CustomSelect"
+import api from "../utils/axiosConfig"
 
 interface ProductPageProps {
-  product: Product
+  product: Product | undefined
 }
 
 const ProductPage = ({ product }: ProductPageProps) => {
-  
+
+
+  const [productState, setProductState] = useState<Product>(product || {
+    _id: 0,
+    description: '',
+    imageUrl: '',
+    name: '',
+    price: 0,
+    stock: 0
+  })
+
+
+  const params = useParams();
+
+  const getProduct = useCallback(async () => {
+
+    const response = await api.get(`/product/${params.id}`)
+
+    setProductState(response.data)
+
+  }, [params.id])
+
+  useEffect(() => {
+
+    if (product) {
+      return;
+    }
+    getProduct()
+
+  }, [product])
+
   const [quantity, setQuantity] = useState(1)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const navigate = useNavigate()
@@ -27,7 +58,7 @@ const ProductPage = ({ product }: ProductPageProps) => {
   }
 
   const calculatePaymentSummary = () => {
-    const productTotal = product.price * quantity
+    const productTotal = productState.price * quantity
 
 
     return {
@@ -45,7 +76,7 @@ const ProductPage = ({ product }: ProductPageProps) => {
   }
 
 
-  const quantityOptions = [...Array(Math.min(product.stock))].map((_, i) => ({
+  const quantityOptions = [...Array(Math.min(productState.stock))].map((_, i) => ({
     value: (i + 1).toString(),
     label: (i + 1).toString(),
   }))
@@ -53,15 +84,15 @@ const ProductPage = ({ product }: ProductPageProps) => {
   return (
     <div className="store-container py-8 animate-[fadeIn_0.5s_ease-out]">
       <header className="flex justify-between items-center mb-8">
-        
+
       </header>
 
       <main className="card p-6 mb-8 animate-[slideIn_0.5s_ease-out]">
         <div className="grid md:grid-cols-2 gap-8">
           <div className="flex justify-center items-center">
             <img
-              src={product.imageUrl || "https://placehold.co/300x300?text=Product+Image"}
-              alt={product.name}
+              src={productState.imageUrl || "https://placehold.co/300x300?text=Product+Image"}
+              alt={productState.name}
               className="max-w-full h-auto rounded-lg"
               loading="lazy"
               decoding="async"
@@ -69,13 +100,13 @@ const ProductPage = ({ product }: ProductPageProps) => {
           </div>
 
           <div className="flex flex-col">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">{product.name}</h2>
-            <p className="text-gray-600 mb-6">{product.description}</p>
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">{productState.name}</h2>
+            <p className="text-gray-600 mb-6">{productState.description}</p>
 
             <div className="flex items-center mb-6">
-              <span className="text-3xl font-bold text-gray-800">${product.price}</span>
+              <span className="text-3xl font-bold text-gray-800">${productState.price}</span>
               <span className="ml-4 px-3 py-1 bg-[#e6f7d9] text-[#4CAF50] rounded-full text-sm">
-                {product.stock > 0 ? `${product.stock} unidades disponibles` : "Agotado"}
+                {productState.stock > 0 ? `${productState.stock} unidades disponibles` : "Agotado"}
               </span>
             </div>
 
@@ -88,11 +119,11 @@ const ProductPage = ({ product }: ProductPageProps) => {
                 value={quantity.toString()}
                 onChange={handleQuantityChange}
                 options={quantityOptions}
-                disabled={product.stock === 0}
+                disabled={productState.stock === 0}
               />
             </div>
 
-            <button onClick={openPaymentModal} disabled={product.stock === 0} className="btn-primary w-full md:w-auto">
+            <button onClick={openPaymentModal} disabled={productState.stock === 0} className="btn-primary w-full md:w-auto">
               Pagar con tarjeta de crédito
             </button>
 
@@ -113,7 +144,7 @@ const ProductPage = ({ product }: ProductPageProps) => {
           paymentSummary={calculatePaymentSummary()}
           onPaymentComplete={handlePaymentComplete}
 
-          product={product}
+          product={productState}
         />
       )}
     </div>

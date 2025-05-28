@@ -61,9 +61,8 @@ function App() {
         <Route
           path="/product/:id"
           element={
-            selectedProduct &&
             <ProductPage
-              product={selectedProduct}
+              product={selectedProduct || undefined}
             />
           }
         />

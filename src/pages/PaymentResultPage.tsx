@@ -16,7 +16,7 @@ const PaymentResultPage = () => {
 
   const getInfo = useCallback(
     async () => {
-      const request = await api.get(`http://localhost:3000/order/${statusTransaction.orderId}`)
+      const request = await api.get(`${import.meta.env.VITE_API_URL}/order/${statusTransaction.orderId}`)
 
       dispatch(setStatusTransaction({
         orderId: request.data._id,

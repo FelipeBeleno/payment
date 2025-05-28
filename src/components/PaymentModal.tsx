@@ -70,7 +70,7 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, product }: P
         'Authorization': `Bearer ${import.meta.env.VITE_PUBLIC_KEY_ACCESS}`
       },
     })
-    debugger;
+    
     dispatch(setTokenId(response.data.data.id))
 
     if (!response.status) {

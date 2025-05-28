@@ -13,7 +13,7 @@ const ProductCatalogPage = ({ onProductSelect }: ProductCatalogProps) => {
   const [products, setProducts] = useState<Product[]>([])
   const getData = useCallback(
     async () => {
-      const resquest = await api.get("http://localhost:3000/product")
+      const resquest = await api.get(`${import.meta.env.VITE_API_URL}/product`)
       setProducts(resquest.data)
     }, [])
 
