@@ -1,7 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { PaymentData } from '../types/types'
 
-
 const initialState: PaymentData = {
     deviceId: '',
     sesionId: '',
@@ -9,19 +8,21 @@ const initialState: PaymentData = {
 }
 
 const paymentDataSlice = createSlice({
-    name: 'products',
+    name: 'paymentData', // Corregido el nombre del slice
     initialState,
     reducers: {
-        setPaymentData(state, action: PayloadAction<PaymentData>) {
-            state.deviceId = action.payload.deviceId
-            state.sesionId = action.payload.sesionId
+        setPaymentData(state, action: PayloadAction<Partial<PaymentData>>) {
+            // Usar Object.assign para actualizar solo los campos proporcionados
+            return { ...state, ...action.payload };
         },
         setTokenId(state, action: PayloadAction<string>) {
-            state.tokenId = action.payload
+            state.tokenId = action.payload;
+        },
+        resetPaymentData() {
+            return initialState;
         }
-
     },
 })
 
-export const { setPaymentData, setTokenId } = paymentDataSlice.actions
+export const { setPaymentData, setTokenId, resetPaymentData } = paymentDataSlice.actions
 export default paymentDataSlice.reducer

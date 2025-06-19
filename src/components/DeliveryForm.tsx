@@ -1,12 +1,10 @@
-import type React from "react"
-
-import { useState } from "react"
-import type { DeliveryInfo } from "../types/types"
-import CountrySelect, { countries } from "./CountrySelect"
+import { useState, FormEvent, ChangeEvent } from "react";
+import { DeliveryInfo } from "../types/types";
+import { validateDeliveryInfo, ValidationError } from "../utils/validation";
 
 interface DeliveryFormProps {
-  onSubmit: (data: DeliveryInfo) => void
-  onBack: () => void
+  onSubmit: (data: DeliveryInfo) => void;
+  onBack: () => void;
 }
 
 const DeliveryForm = ({ onSubmit, onBack }: DeliveryFormProps) => {
@@ -16,217 +14,183 @@ const DeliveryForm = ({ onSubmit, onBack }: DeliveryFormProps) => {
     city: "",
     zipCode: "",
     phone: "",
-    email: "", 
-  })
-  const [selectedCountry, setSelectedCountry] = useState(countries[0]) 
-  const [errors, setErrors] = useState<Partial<Record<keyof DeliveryInfo, string>>>({})
+    email: "",
+  });
+  
+  const [errors, setErrors] = useState<ValidationError[]>([]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-
-    if (name === "phone") {
-      const formattedValue = value.replace(/\D/g, "")
-      setDeliveryData({
-        ...deliveryData,
-        [name]: formattedValue,
-      })
-    } else if (name === "zipCode") {
-      const formattedValue = value.replace(/\D/g, "")
-      setDeliveryData({
-        ...deliveryData,
-        [name]: formattedValue,
-      })
-    } else {
-      setDeliveryData({
-        ...deliveryData,
-        [name]: value,
-      })
-    }
-
-    if (errors[name as keyof DeliveryInfo]) {
-      setErrors({
-        ...errors,
-        [name]: "",
-      })
-    }
-  }
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof DeliveryInfo, string>> = {}
-
-    if (!deliveryData.fullName.trim()) {
-      newErrors.fullName = "El nombre completo es obligatorio"
-    } else if (deliveryData.fullName.trim().length < 3) {
-      newErrors.fullName = "El nombre debe tener al menos 3 caracteres"
-    }
-
-    if (!deliveryData.address.trim()) {
-      newErrors.address = "La dirección es obligatoria"
-    } else if (deliveryData.address.trim().length < 5) {
-      newErrors.address = "La dirección debe ser más detallada"
-    }
-
-    if (!deliveryData.city.trim()) {
-      newErrors.city = "La ciudad es obligatoria"
-    }
-
-    if (!deliveryData.zipCode.trim()) {
-      newErrors.zipCode = "El código postal es obligatorio"
-    } else if (!/^\d{5}$/.test(deliveryData.zipCode)) {
-      newErrors.zipCode = "El código postal debe tener 5 dígitos"
-    }
-
-    if (!deliveryData.phone.trim()) {
-      newErrors.phone = "El teléfono es obligatorio"
-    } else if (!/^\d{10}$/.test(deliveryData.phone)) {
-      newErrors.phone = "El teléfono debe tener 10 dígitos"
-    }
-
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     
-    if (!deliveryData.email.trim()) {
-      newErrors.email = "El correo electrónico es obligatorio"
-    } else if (
-      !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(deliveryData.email)
-    ) {
-      newErrors.email = "El correo electrónico no es válido"
+    // Formateo específico para ciertos campos
+    let formattedValue = value;
+    if (name === "phone") {
+      formattedValue = value.replace(/\D/g, "").substring(0, 15);
+    } else if (name === "zipCode") {
+      formattedValue = value.replace(/\D/g, "").substring(0, 6);
     }
+    
+    setDeliveryData((prev) => ({ ...prev, [name]: formattedValue }));
+    
+    // Limpiar errores del campo cuando el usuario escribe
+    setErrors(errors.filter(error => error.field !== name));
+  };
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (validateForm()) {
-      const fullPhoneNumber = `${selectedCountry.dialCode} ${deliveryData.phone}`
-      onSubmit({
-        ...deliveryData,
-        phone: fullPhoneNumber,
-      })
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    
+    // Validar datos de entrega
+    const validationErrors = validateDeliveryInfo(deliveryData);
+    
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
     }
-  }
+    
+    onSubmit(deliveryData);
+  };
+
+  // Obtener mensaje de error para un campo específico
+  const getErrorMessage = (field: string): string => {
+    const error = errors.find(err => err.field === field);
+    return error ? error.message : "";
+  };
 
   return (
-    <div className="flex flex-col justify-center min-h-[60vh]">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="text-lg font-medium mb-4">Información de entrega</div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="form-group">
+        <label htmlFor="fullName" className="form-label">
+          Nombre completo
+        </label>
+        <input
+          id="fullName"
+          type="text"
+          name="fullName"
+          className={`form-input ${getErrorMessage("fullName") ? "border-red-500" : ""}`}
+          placeholder="Nombre y apellidos"
+          value={deliveryData.fullName}
+          onChange={handleChange}
+          autoComplete="name"
+        />
+        {getErrorMessage("fullName") && (
+          <p className="text-red-500 text-sm mt-1">{getErrorMessage("fullName")}</p>
+        )}
+      </div>
 
-        <div>
-          <label htmlFor="fullName" className="form-label">
-            Nombre completo
+      <div className="form-group">
+        <label htmlFor="address" className="form-label">
+          Dirección
+        </label>
+        <input
+          id="address"
+          type="text"
+          name="address"
+          className={`form-input ${getErrorMessage("address") ? "border-red-500" : ""}`}
+          placeholder="Calle, número, piso, etc."
+          value={deliveryData.address}
+          onChange={handleChange}
+          autoComplete="street-address"
+        />
+        {getErrorMessage("address") && (
+          <p className="text-red-500 text-sm mt-1">{getErrorMessage("address")}</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="form-group">
+          <label htmlFor="city" className="form-label">
+            Ciudad
           </label>
           <input
+            id="city"
             type="text"
-            id="fullName"
-            name="fullName"
-            value={deliveryData.fullName}
+            name="city"
+            className={`form-input ${getErrorMessage("city") ? "border-red-500" : ""}`}
+            placeholder="Ciudad"
+            value={deliveryData.city}
             onChange={handleChange}
-            placeholder="Nombre y apellidos"
-            className={`form-input ${errors.fullName ? "border-red-500" : ""}`}
+            autoComplete="address-level2"
           />
-          {errors.fullName && <p className="error-text">{errors.fullName}</p>}
+          {getErrorMessage("city") && (
+            <p className="text-red-500 text-sm mt-1">{getErrorMessage("city")}</p>
+          )}
         </div>
 
-        <div>
-          <label htmlFor="address" className="form-label">
-            Dirección
+        <div className="form-group">
+          <label htmlFor="zipCode" className="form-label">
+            Código postal
           </label>
           <input
+            id="zipCode"
             type="text"
-            id="address"
-            name="address"
-            value={deliveryData.address}
+            name="zipCode"
+            className={`form-input ${getErrorMessage("zipCode") ? "border-red-500" : ""}`}
+            placeholder="Código postal"
+            value={deliveryData.zipCode}
             onChange={handleChange}
-            placeholder="Calle, número, colonia"
-            className={`form-input ${errors.address ? "border-red-500" : ""}`}
+            autoComplete="postal-code"
           />
-          {errors.address && <p className="error-text">{errors.address}</p>}
+          {getErrorMessage("zipCode") && (
+            <p className="text-red-500 text-sm mt-1">{getErrorMessage("zipCode")}</p>
+          )}
         </div>
+      </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="city" className="form-label">
-              Ciudad
-            </label>
-            <input
-              type="text"
-              id="city"
-              name="city"
-              value={deliveryData.city}
-              onChange={handleChange}
-              placeholder="Ciudad"
-              className={`form-input ${errors.city ? "border-red-500" : ""}`}
-            />
-            {errors.city && <p className="error-text">{errors.city}</p>}
-          </div>
+      <div className="form-group">
+        <label htmlFor="phone" className="form-label">
+          Teléfono
+        </label>
+        <input
+          id="phone"
+          type="tel"
+          name="phone"
+          className={`form-input ${getErrorMessage("phone") ? "border-red-500" : ""}`}
+          placeholder="Número de teléfono"
+          value={deliveryData.phone}
+          onChange={handleChange}
+          autoComplete="tel"
+        />
+        {getErrorMessage("phone") && (
+          <p className="text-red-500 text-sm mt-1">{getErrorMessage("phone")}</p>
+        )}
+      </div>
 
-          <div>
-            <label htmlFor="zipCode" className="form-label">
-              Código postal
-            </label>
-            <input
-              type="text"
-              id="zipCode"
-              name="zipCode"
-              value={deliveryData.zipCode}
-              onChange={handleChange}
-              placeholder="12345"
-              maxLength={5}
-              className={`form-input ${errors.zipCode ? "border-red-500" : ""}`}
-            />
-            {errors.zipCode && <p className="error-text">{errors.zipCode}</p>}
-          </div>
-        </div>
+      <div className="form-group">
+        <label htmlFor="email" className="form-label">
+          Correo electrónico
+        </label>
+        <input
+          id="email"
+          type="email"
+          name="email"
+          className={`form-input ${getErrorMessage("email") ? "border-red-500" : ""}`}
+          placeholder="correo@ejemplo.com"
+          value={deliveryData.email}
+          onChange={handleChange}
+          autoComplete="email"
+        />
+        {getErrorMessage("email") && (
+          <p className="text-red-500 text-sm mt-1">{getErrorMessage("email")}</p>
+        )}
+      </div>
 
-        <div>
-          <label htmlFor="phone" className="form-label">
-            Teléfono
-          </label>
-          <div className="flex">
-            <CountrySelect selectedCountry={selectedCountry} onChange={setSelectedCountry} />
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={deliveryData.phone}
-              onChange={handleChange}
-              placeholder="1234567890"
-              maxLength={10}
-              className={`form-input rounded-l-none ${errors.phone ? "border-red-500" : ""}`}
-            />
-          </div>
-          {errors.phone && <p className="error-text">{errors.phone}</p>}
-        </div>
+      <div className="flex justify-between mt-6">
+        <button
+          type="button"
+          onClick={onBack}
+          className="btn-secondary"
+        >
+          Atrás
+        </button>
+        <button
+          type="submit"
+          className="btn-primary"
+        >
+          Continuar
+        </button>
+      </div>
+    </form>
+  );
+};
 
-        
-        <div>
-          <label htmlFor="email" className="form-label">
-            Correo electrónico
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={deliveryData.email}
-            onChange={handleChange}
-            placeholder="tucorreo@ejemplo.com"
-            className={`form-input ${errors.email ? "border-red-500" : ""}`}
-          />
-          {errors.email && <p className="error-text">{errors.email}</p>}
-        </div>
-
-        <div className="pt-4 flex space-x-4">
-          <button type="button" onClick={onBack} className="btn-secondary w-1/2">
-            Atrás
-          </button>
-          <button type="submit" className="btn-primary w-1/2">
-            Continuar
-          </button>
-        </div>
-      </form>
-    </div>
-  )
-}
-
-export default DeliveryForm
+export default DeliveryForm;

@@ -3,31 +3,27 @@ import type { CreditCard, DeliveryInfo, PaymentSummary, Product } from "../types
 import CreditCardForm from "./CreditCardForm"
 import DeliveryForm from "./DeliveryForm"
 import PaymentSummaryComponent from "./PaymentSummary"
-import { useDispatch, useSelector } from "react-redux"
 import { setTokenId } from "../slices/payment"
 import { setStatusTransaction } from "../slices/statusTransaction"
 import api from "../utils/axiosConfig"
+import { config } from "../utils/config"
+import { WompiCardTokenRequest, WompiTokenResponse } from "../types/wompi"
+import { useAppDispatch, useAppSelector } from "../store/store"
+import { ApiError } from "../utils/errorHandler"
 
 interface PaymentModalProps {
   onClose: () => void
   paymentSummary: PaymentSummary
   onPaymentComplete: (success: boolean) => void
-
   product: Product
 }
 
 const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, product }: PaymentModalProps) => {
-
-
-  const paymentData = useSelector((state: any) => state.paymentData)
-
-  const dispatch = useDispatch();
+  const paymentData = useAppSelector(state => state.paymentData)
+  const dispatch = useAppDispatch();
 
   const [loaderTC, setLoaderTC] = useState(false)
-
   const [step, setStep] = useState<"card" | "delivery" | "summary">("card")
-
-
   const [cardData, setCardData] = useState<CreditCard>({
     number: "",
     name: "",
@@ -44,51 +40,48 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, product }: P
   })
   const [isProcessing, setIsProcessing] = useState(false)
   const [animation, setAnimation] = useState("")
-
+  const [error, setError] = useState<string | null>(null)
 
   const handleCardSubmit = async (data: CreditCard) => {
-
-
-
+    setError(null)
     setLoaderTC(true)
     setCardData(data)
     setAnimation("slideOut")
 
+    try {
+      const cardRequest: WompiCardTokenRequest = {
+        number: data.number.replace(/ /g, ''),
+        exp_month: data.expiry.split("/")[0].trim(),
+        exp_year: data.expiry.split("/")[1].trim(),
+        cvc: data.cvc,
+        card_holder: data.name,
+      }
 
-
-    const response = await api.post(import.meta.env.VITE_URL_WP, {
-
-      "number": data.number.replace(/ /g, ''),
-      "exp_month": data.expiry.split("/")[0].trim(),
-      "exp_year": data.expiry.split("/")[1].trim(),
-      "cvc": data.cvc,
-      "card_holder": data.name,
-
-    }, {
-      headers: {
-        'Content-Type': 'application',
-        'Authorization': `Bearer ${import.meta.env.VITE_PUBLIC_KEY_ACCESS}`
-      },
-    })
-    
-    dispatch(setTokenId(response.data.data.id))
-
-    if (!response.status) {
-      console.error("Error al tokenizar la tarjeta:", response)
+      const response = await api.post<WompiTokenResponse>(config.WOMPI_API_URL, cardRequest, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.WOMPI_PUBLIC_KEY}`
+        },
+      })
+      
+      if (response.data?.data?.id) {
+        dispatch(setTokenId(response.data.data.id))
+        
+        setAnimation("slideOut")
+        setTimeout(() => {
+          setStep("delivery")
+          setAnimation("slideIn")
+        }, 300)
+      } else {
+        setError("No se pudo procesar la tarjeta. Verifica los datos e intenta nuevamente.")
+      }
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.message || "Error al procesar la tarjeta. Intenta nuevamente.")
+      console.error("Error al tokenizar la tarjeta:", err)
+    } finally {
       setLoaderTC(false)
-      return
     }
-
-    if (response.data) {
-      setAnimation("slideOut")
-      setTimeout(() => {
-        setStep("delivery")
-        setAnimation("slideIn")
-      }, 300)
-      setLoaderTC(false)
-    }
-
-
   }
 
   const handleDeliverySubmit = (data: DeliveryInfo) => {
@@ -101,19 +94,15 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, product }: P
   }
 
   const handlePayment = async () => {
-
+    setError(null)
     setIsProcessing(true)
 
-
     try {
-
-
-      const body = {
+      const orderData = {
         deliveryInfo: deliveryData,
         paymentData: paymentData,
         products: [
           {
-
             productId: product._id,
             quantity: paymentSummary.productQuantity,
             priceU: product.price,
@@ -126,32 +115,23 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, product }: P
         feeBought: paymentSummary.total - 8500,
       }
 
+      const response = await api.post('/order', orderData)
 
-
-
-      const request = await api.post('/order',
-        body
-        , {
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
-
-      )
-
-
-      if (request.status) {
+      if (response.data) {
         dispatch(setStatusTransaction({
-          status: request.data.status,
-          orderId: request.data._id
+          status: response.data.status,
+          orderId: response.data._id
         }))
 
         onPaymentComplete(true)
       } else {
+        setError("No se pudo procesar el pago. Intenta nuevamente.")
         onPaymentComplete(false)
       }
-    } catch (error) {
-      console.error("Error al procesar el pago:", error)
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.message || "Error al procesar el pago. Intenta nuevamente.")
+      console.error("Error al procesar el pago:", err)
       onPaymentComplete(false)
     } finally {
       setIsProcessing(false)
@@ -159,6 +139,7 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, product }: P
   }
 
   const goBack = () => {
+    setError(null)
     setAnimation("slideOutReverse")
     setTimeout(() => {
       if (step === "delivery") {
@@ -169,7 +150,6 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, product }: P
       setAnimation("slideInReverse")
     }, 300)
   }
-
 
   const getAnimationClasses = () => {
     let classes = "transition-all duration-300"
@@ -207,6 +187,17 @@ const PaymentModal = ({ onClose, paymentSummary, onPaymentComplete, product }: P
               </svg>
             </button>
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
+              <p className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {error}
+              </p>
+            </div>
+          )}
 
           <div className="steps-indicator">
             <div

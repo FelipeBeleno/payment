@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { StatusTransaction } from '../types/types'
-
+import { OrderStatus, StatusTransaction } from '../types/types'
 
 const initialState: StatusTransaction = {
     status: '',
@@ -12,12 +11,17 @@ const statusTransactionSlice = createSlice({
     initialState,
     reducers: {
         setStatusTransaction(state, action: PayloadAction<StatusTransaction>) {
-            state.status = action.payload.status
-            state.orderId = action.payload.orderId
+            state.status = action.payload.status;
+            state.orderId = action.payload.orderId;
+        },
+        updateTransactionStatus(state, action: PayloadAction<OrderStatus | ''>) {
+            state.status = action.payload;
+        },
+        resetTransaction() {
+            return initialState;
         }
-
     },
 })
 
-export const { setStatusTransaction } = statusTransactionSlice.actions
+export const { setStatusTransaction, updateTransactionStatus, resetTransaction } = statusTransactionSlice.actions
 export default statusTransactionSlice.reducer
